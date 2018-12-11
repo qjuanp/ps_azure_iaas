@@ -1,0 +1,16 @@
+#This is not a script
+
+#Region Creation
+az group create \
+    --location eastus
+    --name p-rg-template
+    --tags exercise=practice1 execution-type=azcli
+
+# VM Cration
+## Windows Server 2016 Datacenter with IIS
+az vm create \
+    --name p-base-server-winiis16
+    --resource-group p-template
+    --tags exercise=practice1 execution-type=azcli
+
+## Ubuntu Server

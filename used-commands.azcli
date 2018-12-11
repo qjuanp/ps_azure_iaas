@@ -1,0 +1,36 @@
+#This is not a script
+
+# Generalize VM
+az vm generalize \
+    -g p1-manual-servers-template \
+    -n p1-mn-server-01 \
+
+# Capture VM Image from unmanaged disks
+## Capture Win image -- commands only for blob based disks
+az vm capture --vhd-name-prefix winiis16 \
+              -g p1-manual-servers-template \
+              -n p1-mn-server-01 \
+              --storage-container p1manualserverstemplated \
+              -o json > vm-winiis16-capture-result.json
+
+## Capture Lin image -- commands only for blob based disks
+az vm capture --vhd-name-prefix lindata \
+              -g p1-manual-servers-template \
+              -n p1-mn-server-02 \
+              --storage-container p1manualserverstemplated \
+              -o json > vm-lindata-capture-result.json
+
+# Capture VM Image from manage disks
+## Capture Win image
+az image create \
+    --name winiis16 \
+    --resource-group p1-manual-servers-template \
+    --source p1-mn-server-01 \
+    -o json > vm-winiis16-capture-result.json
+
+## Capture Linux image
+az image create \
+    --name winiis16 \
+    --resource-group p1-manual-servers-template \
+    --source p1-mn-server-01 \
+    -o json > vm-winiis16-capture-result.json

@@ -1,0 +1,5 @@
+az deployment create \
+    -n demodp
+    -l eastus
+    --template-file ./vm-win16-template.json
+    --parameters prefix=delete suffix=01
