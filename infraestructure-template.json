@@ -1,0 +1,69 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "prefix": {
+            "type": "string"
+        },
+        "suffix": {
+            "type": "int"
+        },
+        "location": {
+            "defaultValue": "eastus",
+            "type": "string"
+        }
+    },
+    "variables": {
+        "rgName": "[concat(parameters('prefix'),'-rg-',parameters('suffix'))]",
+        "storageName": "[concat(parameters('prefix'),'stg',parameters('suffix'))]",
+        "tagExercise": "practice1",
+        "tagExecutionType": "template"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2018-05-01",
+            "location": "East US",
+            "name": "[variables('rgName')]",
+            "tags": {
+                "exercise": "[variables('tagExercise')]",
+                "execution-type": "[variables('tagExecutionType')]"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2017-05-10",
+            "name": "iaasDeploy",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups/', variables('rgName'))]"
+            ],
+            "resourceGroup": "[variables('rgName')]",
+            "properties": {
+                "mode": "Incremental",
+                "template":{
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Storage/storageAccounts",
+                            "apiVersion": "2018-07-01",
+                            "name": "[variables('storageName')]",
+                            "location": "[parameters('location')]",
+                            "tags": {
+                                "displayName": "[variables('storageName')]"
+                            },
+                            "sku": {
+                                "name": "Standard_LRS"
+                            },
+                            "kind": "StorageV2"
+                        }
+                    ],
+                    "outputs": {}
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}

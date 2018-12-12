@@ -1,5 +1,5 @@
 az deployment create \
-    -n demodp
-    -l eastus
-    --template-file ./vm-win16-template.json
+    -n demodp \
+    -l eastus \
+    --template-file ./infraestructure-template.json \
     --parameters prefix=delete suffix=01
