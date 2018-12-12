@@ -11,11 +11,32 @@
         "location": {
             "defaultValue": "eastus",
             "type": "string"
+        },
+        "username": {
+            "type": "string"
+        },
+        "pwd": {
+            "type": "securestring"
         }
     },
     "variables": {
         "rgName": "[concat(parameters('prefix'),'-rg-',parameters('suffix'))]",
         "storageName": "[concat(parameters('prefix'),'stg',parameters('suffix'))]",
+        "vnet": "[concat(parameters('prefix'),'vnet',parameters('suffix'))]",
+        "win-image": {
+            "name": "winiis16",
+            "id": "/subscriptions/d79631b3-53de-4c4b-89ee-658759e6a8d2/resourceGroups/p1-manual-servers-template/providers/Microsoft.Compute/images/winiis16",
+            "ipaddress": "[concat(parameters('prefix'),'ipaddress',parameters('suffix'))]",
+            "nic": "[concat(parameters('prefix'),'nic',parameters('suffix'))]"
+        },
+        "lin-image": {
+            "name": "lindata"
+        },
+        "win-servers": {
+            "name": "[concat(parameters('prefix'),'win',parameters('suffix'))]"
+        },
+        "vm-size": "Standard_B1s",
+        "diskStorageType": "Standard_LRS",
         "tagExercise": "practice1",
         "tagExecutionType": "template"
     },
@@ -32,7 +53,7 @@
         },
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2017-05-10",
+            "apiVersion": "2018-05-01",
             "name": "iaasDeploy",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/resourceGroups/', variables('rgName'))]"
@@ -40,24 +61,179 @@
             "resourceGroup": "[variables('rgName')]",
             "properties": {
                 "mode": "Incremental",
-                "template":{
+                "template": {
                     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
                     "contentVersion": "1.0.0.0",
                     "parameters": {},
                     "variables": {},
                     "resources": [
                         {
-                            "type": "Microsoft.Storage/storageAccounts",
-                            "apiVersion": "2018-07-01",
-                            "name": "[variables('storageName')]",
+                            "type": "Microsoft.Compute/Images",
+                            "apiVersion": "2018-10-01",
+                            "name": "[variables('win-image').name]",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                                "storageProfile": {
+                                    "osDisk": {
+                                        "osType": "Windows",
+                                        "osState": "Generalized",
+                                        "managedDisk": {
+                                            "id": "[variables('win-image').id]"
+                                        },
+                                        "diskSizeGB": 100,
+                                        "storageAccountType": "[variables('diskStorageType')]"
+                                    }
+                                }
+                            },
+                            "tags": {
+                                "exercise": "[variables('tagExercise')]",
+                                "execution-type": "[variables('tagExecutionType')]"
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/virtualNetworks",
+                            "apiVersion": "2018-08-01",
+                            "name": "[variables('vnet')]",
                             "location": "[parameters('location')]",
                             "tags": {
-                                "displayName": "[variables('storageName')]"
+                                "displayName": "[variables('vnet')]",
+                                "exercise": "[variables('tagExercise')]",
+                                "execution-type": "[variables('tagExecutionType')]"
+                            },
+                            "properties": {
+                                "addressSpace": {
+                                    "addressPrefixes": [
+                                        "10.0.0.0/16"
+                                    ]
+                                },
+                                "subnets": [
+                                    {
+                                        "name": "sn-web-tier",
+                                        "properties": {
+                                            "addressPrefix": "10.0.0.0/24"
+                                        }
+                                    },
+                                    {
+                                        "name": "sn-data-tier",
+                                        "properties": {
+                                            "addressPrefix": "10.0.1.0/24"
+                                        }
+                                    },
+                                    {
+                                        "name": "sn-mgmt-tier",
+                                        "properties": {
+                                            "addressPrefix": "10.0.2.0/24"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/publicIPAddresses",
+                            "apiVersion": "2018-08-01",
+                            "name": "[variables('win-image').ipaddress]",
+                            "location": "[parameters('location')]",
+                            "tags": {
+                                "displayName": "[variables('win-image').ipaddress]",
+                                "exercise": "[variables('tagExercise')]",
+                                "execution-type": "[variables('tagExecutionType')]"
+                            },
+                            "properties": {
+                                "publicIPAllocationMethod": "Dynamic",
+                                "dnsSettings": {
+                                    "domainNameLabel": "[variables('win-servers').name]"
+                                }
+                            }
+                        },
+                        {
+                            "type": "Microsoft.Network/networkInterfaces",
+                            "apiVersion": "2018-08-01",
+                            "name": "[variables('win-image').nic]",
+                            "location": "[parameters('location')]",
+                            "tags": {
+                                "displayName": "[variables('win-image').nic]",
+                                "exercise": "[variables('tagExercise')]",
+                                "execution-type": "[variables('tagExecutionType')]"
+                            },
+                            "dependsOn": [
+                                "[concat('Microsoft.Network/virtualNetworks/',variables('vnet'))]",
+                                "[concat('Microsoft.Network/publicIPAddresses/',variables('win-image').ipaddress)]"
+                            ],
+                            "properties": {
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('vnet')),'/subnets/sn-web-tier')]"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "[concat(variables('win-servers').name,'_OsDisk')]",
+                            "type": "Microsoft.Compute/disks",
+                            "apiVersion": "2018-06-01",
+                            "location": "[parameters('location')]",
+                            "tags": {
+                                "exercise": "[variables('tagExercise')]",
+                                "execution-type": "[variables('tagExecutionType')]"
                             },
                             "sku": {
-                                "name": "Standard_LRS"
+                                "name": "[variables('diskStorageType')]"
                             },
-                            "kind": "StorageV2"
+                            "properties": {
+                                "osType" : "Windows",
+                                "creationData" :{
+                                    "createOption" : "FromImage",
+                                    "imageReference" : {
+                                        "id":"[variables('win-image').id]"
+                                    }
+                                },
+                                "diskSizeGB": "100"
+                            }
+                        },
+                        {
+                            "apiVersion": "2018-10-01",
+                            "type": "Microsoft.Compute/virtualMachines",
+                            "name": "[variables('win-servers').name]",
+                            "location": "[parameters('location')]",
+                            "dependsOn": [
+                                "[concat('Microsoft.Network/networkInterfaces/',variables('win-image').nic)]",
+                                "[concat('Microsoft.Compute/images/', variables('win-image').name)]",
+                                "[concat('Microsoft.Compute/disks/',variables('win-servers').name,'_OsDisk')]"
+                            ],
+                            "properties": {
+                                "hardwareProfile": {
+                                    "vmSize": "[variables('vm-size')]"
+                                },
+                                "osProfile": {
+                                    "computerName": "[variables('win-servers').name]",
+                                    "adminUsername": "[parameters('username')]",
+                                    "adminPassword": "[parameters('pwd')]"
+                                },
+                                "storageProfile": {
+                                    "imageReference": {
+                                        "id": "[resourceId('Microsoft.Compute/Images',variables('win-image').name)]"
+                                    },
+                                    "osDisk": {
+                                        "manageDisk": {
+                                            "id":"[resourceId('Microsoft.Compute/disks/', concat(variables('win-servers').name,'_OsDisk'))]",
+                                            "storageAccountType": "[variables('diskStorageType')]"
+                                        }
+                                    }
+                                },
+                                "networkProfile": {
+                                    "networkInterfaces": [
+                                        {
+                                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('win-image').nic)]"
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     ],
                     "outputs": {}
